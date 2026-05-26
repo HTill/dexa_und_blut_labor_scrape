@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LabProvider",
+  "description": "Ein Anbieter für DEXA-Scans oder Blutuntersuchungen",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Eindeutige ID (z.B. Slug aus Name+Ort)"
+    },
+    "name": {
+      "type": "string",
+      "description": "Name der Praxis / des Labors"
+    },
+    "category": {
+      "type": "string",
+      "enum": ["dexa", "blutlabor", "beide"],
+      "description": "Kategorie des Anbieters"
+    },
+    "services": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Angebotene Leistungen",
+      "examples": [
+        ["DEXA Body Composition", "Knochendichte"],
+        ["Bluttest Selbstzahler", "Vitamin D", "Schilddrüse"]
+      ]
+    },
+    "address": {
+      "type": "object",
+      "properties": {
+        "street": { "type": "string" },
+        "postal_code": { "type": "string" },
+        "city": { "type": "string" },
+        "country": { "type": "string", "enum": ["DE", "AT", "CH"] }
+      },
+      "required": ["street", "postal_code", "city", "country"]
+    },
+    "coordinates": {
+      "type": "object",
+      "properties": {
+        "lat": { "type": "number" },
+        "lng": { "type": "number" }
+      },
+      "required": ["lat", "lng"]
+    },
+    "contact": {
+      "type": "object",
+      "properties": {
+        "phone": { "type": "string" },
+        "website": { "type": "string", "format": "uri" },
+        "email": { "type": "string", "format": "email" }
+      }
+    },
+    "self_payer": {
+      "type": "boolean",
+      "description": "Selbstzahler möglich?"
+    },
+    "prices": {
+      "type": "object",
+      "description": "Preise falls öffentlich verfügbar",
+      "additionalProperties": { "type": "string" }
+    },
+    "verified": {
+      "type": "boolean",
+      "description": "Wurde der Eintrag manuell verifiziert?"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Wichtige Hinweise (z.B. nur mit Termin, Wartezeit)"
+    }
+  },
+  "required": ["id", "name", "category", "address", "coordinates"]
+}

@@ -83,7 +83,7 @@ Neue Services einfach im Enum ergänzen — Schema muss nicht angepasst werden.
 ### Workflow
 
 1. Scraper bauen: `scraper/scrapers/<name>/run.py` + `__main__.py` — nutzt `Kit`
-2. Scraper ausführen: `python -m scraper.scrapers.<name>` → schreibt `data/unchecked/<name>.json`
+2. Scraper ausführen: `python -m scraper.scrapers.<name>.run` → schreibt `data/unchecked/<name>.json`
 3. Manuelle Prüfung der Einträge in der unchecked-Datei
 4. `python -m scraper.tools.clean` → validiert, dedupliziert, schreibt `data/providers.json`
 5. Web-Karte (`web/`) lädt `providers.json`

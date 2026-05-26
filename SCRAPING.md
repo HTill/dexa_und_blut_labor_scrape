@@ -5,6 +5,91 @@ Pro Suche/Session: Quelle, Query, Rohdaten, transformierte JSON-Einträge, Verif
 
 ---
 
+## Scraper-Architektur
+
+### Verzeichnisstruktur
+
+```
+scraper/
+├── tools/                    # Helfer (Model, Validierung, Clean-Pipeline)
+│   ├── models.py             # Provider-Dataclass
+│   ├── services.py           # Service Enum (type-safe Leistungs-Strings)
+│   ├── kit.py                # Kit — einheitliches Interface für Scraper
+│   ├── validate.py           # jsonschema-Validierung
+│   └── clean.py              # unchecked/*.json → providers.json (dedup)
+│
+├── scrapers/                 # Jeder Scraper in eigenem Ordner
+│   └── overpass/
+│       └── scraper.py
+│
+├── tests/
+│   ├── test_models.py
+│   ├── test_services.py
+│   ├── test_kit.py
+│   ├── test_validate.py
+│   └── test_clean.py
+│
+└── requirements.txt
+
+data/
+├── schema.json               # JSON Schema (wird getracked)
+├── providers.json            # clean.py Output — lädt die Karte
+└── unchecked/                # Scraper-Outputs (ignored von Git)
+    ├── overpass_dach.json
+    └── ...
+```
+
+### Kit — einheitliches Interface für jeden Scraper
+
+Jeder Scraper nutzt `Kit`, um Provider zu erstellen und zu speichern:
+
+```python
+from scraper.tools.kit import Kit
+
+kit = Kit("mein_scraper")      # Name → Dateiname in data/unchecked/
+
+# Provider bauen mit Factory-Methoden
+p = kit.provider(
+    id="praxis-hannover",
+    name="Praxis Hannover",
+    category="dexa",
+    address=kit.address(street="Str 1", postal_code="30159", city="Hannover", country="DE"),
+    coordinates=kit.coordinates(lat=52.37, lng=9.73),
+    services=[kit.svc.DEXA_BODY_COMP, kit.svc.BLOOD_SELF_PAYER],
+    contact=kit.contact(phone="+49 511 123", website="https://..."),
+    self_payer=True,
+    prices={"DEXA Body Composition": "80 €"},
+    verified=False,
+    source=["mein_scraper"],
+)
+
+# Speichern / Laden
+kit.save([p])
+existing = kit.load()
+```
+
+### Service Enum
+
+Type-safe Strings für Leistungen. In `scraper/tools/services.py` definiert, über `kit.svc` nutzbar:
+
+| Enum-Wert | String |
+|---|---|
+| `DEXA_BODY_COMP` | `"DEXA Body Composition"` |
+| `DEXA_BONE_DENSITY` | `"DEXA Knochendichte"` |
+| `BLOOD_SELF_PAYER` | `"Bluttest Selbstzahler"` |
+
+Neue Services einfach im Enum ergänzen — Schema muss nicht angepasst werden.
+
+### Workflow
+
+1. Scraper bauen: `scraper/scrapers/<name>/scraper.py` — nutzt `Kit`
+2. Scraper ausführen → schreibt `data/unchecked/<name>.json`
+3. Manuelle Prüfung der Einträge in der unchecked-Datei
+4. `python scraper/tools/clean.py` → validiert, dedupliziert, schreibt `data/providers.json`
+5. Web-Karte (`web/`) lädt `providers.json`
+
+---
+
 ## Übersicht der Sessions
 
 | # | Datum | Quelle | Ansatz | Roh-Ergebnisse | Verifizierte Einträge | Status |

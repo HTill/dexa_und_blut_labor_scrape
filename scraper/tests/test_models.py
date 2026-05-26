@@ -2,7 +2,7 @@
 
 import json
 
-from scraper.models import Address, Coordinates, Contact, Provider
+from scraper.tools.models import Address, Coordinates, Contact, Provider
 
 
 def test_provider_to_dict_minimal():

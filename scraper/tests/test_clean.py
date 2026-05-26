@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from scraper.clean import clean, deduplicate, load_unchecked_entries, merge_sources
+from scraper.tools.clean import clean, deduplicate, load_unchecked_entries, merge_sources
 
 
 def test_load_unchecked_entries_empty_dir():
@@ -16,7 +16,7 @@ def test_load_unchecked_entries_empty_dir():
         unchecked_dir = Path(tmpdir) / "unchecked"
         unchecked_dir.mkdir()
         # Patch DATA_DIR für den Test
-        import scraper.clean as clean_module
+        import scraper.tools.clean as clean_module
         original = clean_module.UNCHECKED_DIR
         clean_module.UNCHECKED_DIR = unchecked_dir
         try:
@@ -38,7 +38,7 @@ def test_load_unchecked_entries_multiple_files():
         file2 = unchecked_dir / "b.json"
         file2.write_text(json.dumps([{"id": "b1"}]))
 
-        import scraper.clean as clean_module
+        import scraper.tools.clean as clean_module
         original = clean_module.UNCHECKED_DIR
         clean_module.UNCHECKED_DIR = unchecked_dir
         try:
@@ -131,7 +131,7 @@ def test_clean_integration(tmp_path):
     )
 
     # Patch DATA_DIR für den Test
-    import scraper.clean as clean_module
+    import scraper.tools.clean as clean_module
     original_data = clean_module.DATA_DIR
     original_unchecked = clean_module.UNCHECKED_DIR
     original_output = clean_module.OUTPUT_FILE

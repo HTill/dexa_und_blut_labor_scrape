@@ -11,10 +11,10 @@ from pathlib import Path
 
 import requests
 
-from models import Address, Coordinates, Provider
+from scraper.tools.models import Address, Coordinates, Provider
 
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
-DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+DATA_DIR = Path(__file__).resolve().parent.parent.parent / "data"
 UNCHECKED_DIR = DATA_DIR / "unchecked"
 OUTPUT_FILE = UNCHECKED_DIR / "overpass_dach.json"
 

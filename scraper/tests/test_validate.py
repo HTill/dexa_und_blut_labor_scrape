@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from scraper.validate import load_schema, validate_entry, validate_file
+from scraper.tools.validate import load_schema, validate_entry, validate_file
 
 
 def test_load_schema():

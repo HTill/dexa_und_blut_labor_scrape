@@ -7,9 +7,9 @@ import json
 import sys
 from pathlib import Path
 
-from scraper.validate import validate_entry
+from scraper.tools.validate import validate_entry
 
-DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+DATA_DIR = Path(__file__).resolve().parent.parent.parent / "data"
 UNCHECKED_DIR = DATA_DIR / "unchecked"
 OUTPUT_FILE = DATA_DIR / "providers.json"
 

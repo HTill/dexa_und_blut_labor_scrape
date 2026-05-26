@@ -7,7 +7,7 @@ from pathlib import Path
 
 import jsonschema
 
-SCHEMA_PATH = Path(__file__).resolve().parent.parent / "data" / "schema.json"
+SCHEMA_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "schema.json"
 
 
 def load_schema() -> dict:

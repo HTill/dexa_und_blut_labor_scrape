@@ -68,6 +68,11 @@
     "notes": {
       "type": "string",
       "description": "Wichtige Hinweise (z.B. nur mit Termin, Wartezeit)"
+    },
+    "source": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Quellen des Eintrags (z.B. [\"overpass_de\", \"manual\"])"
     }
   },
   "required": ["id", "name", "category", "address", "coordinates"]

@@ -8,3 +8,7 @@ node_modules/
 .DS_Store
 *.swp
 *.swo
+
+# Data: generated files ignored, only schema.json tracked
+data/
+!data/schema.json

@@ -19,6 +19,10 @@ python -m pytest scraper/tests/
 # Daten erfassen (interaktiv)
 python -m scraper.scrapers.manual.run
 
+# Daten mergen + Web-Karte starten (Ein-Klick)
+python serve.py
+
+# Oder einzeln:
 # Daten mergen
 python -m scraper.tools.clean
 

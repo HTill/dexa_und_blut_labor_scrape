@@ -6,17 +6,12 @@ Knochendichtemessung. Alle Ergebnisse müssen manuell nachgeprüft werden.
 Jeder Eintrag bekommt source=["overpass"] und verified=False.
 """
 
-import json
-from pathlib import Path
-
 import requests
 
-from scraper.tools.models import Address, Coordinates, Provider
+from scraper.tools.kit import Kit
 
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
-DATA_DIR = Path(__file__).resolve().parent.parent.parent / "data"
-UNCHECKED_DIR = DATA_DIR / "unchecked"
-OUTPUT_FILE = UNCHECKED_DIR / "overpass_dach.json"
+kit = Kit("overpass_dach")
 
 
 def search_overpass(query: str, timeout: int = 30) -> list[dict]:
@@ -28,16 +23,10 @@ def search_overpass(query: str, timeout: int = 30) -> list[dict]:
 
 
 def _slugify(name: str, city: str) -> str:
-    """Erzeugt einen einfachen Slug aus Name und Stadt."""
     return f"{name.lower().replace(' ', '-')}-{city.lower().replace(' ', '-')}"
 
 
-def _build_provider(node: dict) -> Provider | None:
-    """
-    Konvertiert einen Overpass-Node in einen Provider.
-
-    Returns None wenn der Node keine Adresse oder Koordinaten hat.
-    """
+def _build_provider(node: dict):
     tags = node.get("tags", {})
     lat = node.get("lat")
     lng = node.get("lon")
@@ -54,45 +43,31 @@ def _build_provider(node: dict) -> Provider | None:
     city = tags.get("addr:city", "")
     country = tags.get("addr:country", "")
 
-    # Ohne Adresse können wir den Eintrag nicht verifizieren
     if not city:
         return None
 
-    # Falls country nicht gesetzt, aus dem Kontext ableiten
     if not country:
-        country = "DE"  # Default, wird später korrigiert
+        country = "DE"
 
-    return Provider(
+    return kit.provider(
         id=_slugify(name, city),
         name=name,
-        category="dexa",  # Overpass liefert nur Radiologie, aber unklar ob Body Comp
-        address=Address(
+        category="dexa",
+        address=kit.address(
             street=street or "Unbekannt",
             postal_code=postal_code or "00000",
             city=city,
             country=country,
         ),
-        coordinates=Coordinates(lat=float(lat), lng=float(lng)),
-        services=[],  # unbekannt ob Body Comp oder Knochendichte
-        contact=None,
-        self_payer=None,
-        prices={},
+        coordinates=kit.coordinates(lat=float(lat), lng=float(lng)),
+        services=[],
         verified=False,
         notes="Overpass: Manuelle Prüfung nötig ob DEXA Body Composition angeboten wird.",
         source=["overpass"],
     )
 
 
-def scrape_region(country_code: str = "DE") -> list[Provider]:
-    """
-    Scraped Radiologie-Praxen für ein Land.
-
-    Args:
-        country_code: ISO3166-1 Code (DE, AT, CH)
-
-    Returns:
-        Liste von Provider-Objekten
-    """
+def scrape_region(country_code: str = "DE") -> list:
     query = f"""
     [out:json];
     area["ISO3166-1"="{country_code}"];
@@ -104,7 +79,6 @@ def scrape_region(country_code: str = "DE") -> list[Provider]:
     for node in nodes:
         provider = _build_provider(node)
         if provider:
-            # Korrigiere country falls aus Tags ableitbar
             if provider.address.country != country_code:
                 provider.address.country = country_code
             providers.append(provider)
@@ -112,7 +86,6 @@ def scrape_region(country_code: str = "DE") -> list[Provider]:
 
 
 def main() -> None:
-    """CLI-Einstieg: scraped DACH-Region und schreibt nach data/unchecked/overpass_dach.json."""
     all_providers = []
 
     for country in ["DE", "AT", "CH"]:
@@ -121,14 +94,8 @@ def main() -> None:
         print(f"{len(providers)} Einträge")
         all_providers.extend(providers)
 
-    # Schreiben
-    UNCHECKED_DIR.mkdir(parents=True, exist_ok=True)
-    entries = [p.to_dict() for p in all_providers]
-
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        json.dump(entries, f, indent=2, ensure_ascii=False)
-
-    print(f"✓ {len(entries)} Einträge nach {OUTPUT_FILE} geschrieben")
+    kit.save(all_providers)
+    print(f"✓ {len(all_providers)} Einträge nach data/unchecked/overpass_dach.json geschrieben")
     print("⚠ JEDER Eintrag muss manuell geprüft werden (Body Comp vs. Knochendichte)!")
 
 

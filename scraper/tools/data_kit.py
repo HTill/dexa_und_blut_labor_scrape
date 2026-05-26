@@ -1,9 +1,7 @@
 """
-Kit — einheitliches Interface für alle Scraper-Skripte.
+DataKit — Provider-Erstellung und Datei-I/O für Scraper.
 
-Bündelt Models, Service-Enum und Datei-I/O in einem Objekt.
-Jeder Scraper initialisiert ein Kit mit seinem Namen und kann
-darüber Provider erstellen, speichern und laden.
+Bündelt Models, Service-Enum und Speichern/Laden in einem Objekt.
 """
 
 import json
@@ -16,21 +14,21 @@ DATA_DIR = Path(__file__).resolve().parent.parent.parent / "data"
 UNCHECKED_DIR = DATA_DIR / "unchecked"
 
 
-class Kit:
+class DataKit:
     """
-    Scraper-Werkzeugkasten.
+    Daten-Werkzeugkasten für Provider.
 
     Usage:
-        kit = Kit("overpass_de")
-        p = kit.provider(
+        dk = DataKit("overpass_de")
+        p = dk.provider(
             id="praxis-hannover",
             name="Praxis Hannover",
             category="dexa",
-            address=kit.address(street="...", postal_code="...", city="Hannover", country="DE"),
-            coordinates=kit.coordinates(lat=52.37, lng=9.73),
-            services=[kit.svc.DEXA_BODY_COMP],
+            address=dk.address(street="...", postal_code="...", city="Hannover", country="DE"),
+            coordinates=dk.coordinates(lat=52.37, lng=9.73),
+            services=[dk.svc.DEXA_BODY_COMP],
         )
-        kit.save([p])
+        dk.save([p])
     """
 
     def __init__(self, name: str):

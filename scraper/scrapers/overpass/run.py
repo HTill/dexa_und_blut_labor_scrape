@@ -11,18 +11,17 @@ if __name__ == "__main__" and __package__ is None:
     import sys
     sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
-import requests
-
-from scraper.tools.kit import Kit
+from scraper.tools.data_kit import DataKit
+from scraper.tools.request_kit import RequestKit
 
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
-kit = Kit("overpass_dach")
+dk = DataKit("overpass_dach")
+rk = RequestKit(rate=1.0)
 
 
-def search_overpass(query: str, timeout: int = 30) -> list[dict]:
+def search_overpass(query: str) -> list[dict]:
     """Führt eine Overpass-Query aus und gibt Elemente zurück."""
-    resp = requests.get(OVERPASS_URL, params={"data": query}, timeout=timeout)
-    resp.raise_for_status()
+    resp = rk.get(OVERPASS_URL, params={"data": query})
     data = resp.json()
     return data.get("elements", [])
 
@@ -54,17 +53,17 @@ def _build_provider(node: dict):
     if not country:
         country = "DE"
 
-    return kit.provider(
+    return dk.provider(
         id=_slugify(name, city),
         name=name,
         category="dexa",
-        address=kit.address(
+        address=dk.address(
             street=street or "Unbekannt",
             postal_code=postal_code or "00000",
             city=city,
             country=country,
         ),
-        coordinates=kit.coordinates(lat=float(lat), lng=float(lng)),
+        coordinates=dk.coordinates(lat=float(lat), lng=float(lng)),
         services=[],
         verified=False,
         notes="Overpass: Manuelle Prüfung nötig ob DEXA Body Composition angeboten wird.",
@@ -99,7 +98,7 @@ def main() -> None:
         print(f"{len(providers)} Einträge")
         all_providers.extend(providers)
 
-    kit.save(all_providers)
+    dk.save(all_providers)
     print(f"✓ {len(all_providers)} Einträge nach data/unchecked/overpass_dach.json geschrieben")
     print("⚠ JEDER Eintrag muss manuell geprüft werden (Body Comp vs. Knochendichte)!")
 

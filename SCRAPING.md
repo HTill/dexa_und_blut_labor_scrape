@@ -14,7 +14,8 @@ scraper/
 ├── tools/                    # Helfer (Model, Validierung, Clean-Pipeline)
 │   ├── models.py             # Provider-Dataclass
 │   ├── services.py           # Service Enum (type-safe Leistungs-Strings)
-│   ├── kit.py                # Kit — einheitliches Interface für Scraper
+│   ├── data_kit.py           # DataKit — Provider erstellen + Datei-I/O
+│   ├── request_kit.py        # RequestKit — HTTP mit Proxy, Rate-Limit, Retry
 │   ├── validate.py           # jsonschema-Validierung
 │   └── clean.py              # unchecked/*.json → providers.json (dedup)
 │
@@ -39,24 +40,24 @@ data/
     └── ...
 ```
 
-### Kit — einheitliches Interface für jeden Scraper
+### DataKit — Provider-Erstellung und Datei-I/O
 
-Jeder Scraper nutzt `Kit`, um Provider zu erstellen und zu speichern:
+Jeder Scraper nutzt `DataKit`, um Provider zu erstellen und zu speichern:
 
 ```python
-from scraper.tools.kit import Kit
+from scraper.tools.data_kit import DataKit
 
-kit = Kit("mein_scraper")      # Name → Dateiname in data/unchecked/
+dk = DataKit("mein_scraper")  # Name → Dateiname in data/unchecked/
 
 # Provider bauen mit Factory-Methoden
-p = kit.provider(
+p = dk.provider(
     id="praxis-hannover",
     name="Praxis Hannover",
     category="dexa",
-    address=kit.address(street="Str 1", postal_code="30159", city="Hannover", country="DE"),
-    coordinates=kit.coordinates(lat=52.37, lng=9.73),
-    services=[kit.svc.DEXA_BODY_COMP, kit.svc.BLOOD_SELF_PAYER],
-    contact=kit.contact(phone="+49 511 123", website="https://..."),
+    address=dk.address(street="Str 1", postal_code="30159", city="Hannover", country="DE"),
+    coordinates=dk.coordinates(lat=52.37, lng=9.73),
+    services=[dk.svc.DEXA_BODY_COMP, dk.svc.BLOOD_SELF_PAYER],
+    contact=dk.contact(phone="+49 511 123", website="https://..."),
     self_payer=True,
     prices={"DEXA Body Composition": "80 €"},
     verified=False,
@@ -64,9 +65,44 @@ p = kit.provider(
 )
 
 # Speichern / Laden
-kit.save([p])
-existing = kit.load()
+dk.save([p])
+existing = dk.load()
 ```
+
+### RequestKit — HTTP mit Proxy, Rate-Limiting und Retry
+
+Wenn ein Scraper viele Requests an dieselbe API sendet, drohen IP-Sperren.
+Ein **nginx-Forward-Proxy** auf einem separaten Server leitet Requests weiter —
+die Zielseite sieht nur die Proxy-IP, nicht die des Scrapers.
+
+```python
+from scraper.tools.request_kit import RequestKit
+
+# Ohne Proxy (direkt)
+rk = RequestKit(rate=1.0, retries=3)
+
+# Mit Proxy
+rk = RequestKit(proxy="http://10.0.0.1:8080", rate=0.5, retries=5)
+
+resp = rk.get("https://api.example.com/data", params={"key": "value"})
+data = resp.json()
+```
+
+**nginx-Proxy einrichten (auf eigenem Server):**
+```nginx
+# /etc/nginx/sites-available/scraper-proxy
+server {
+    listen 8080;
+    location / {
+        resolver 8.8.8.8;
+        proxy_pass $scheme://$host$request_uri;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $remote_addr;
+    }
+}
+```
+
+Mehrere Proxies auf verschiedenen Servern = rotierende IPs = kein Block.
 
 ### Service Enum
 
@@ -82,7 +118,7 @@ Neue Services einfach im Enum ergänzen — Schema muss nicht angepasst werden.
 
 ### Workflow
 
-1. Scraper bauen: `scraper/scrapers/<name>/run.py` + `__main__.py` — nutzt `Kit`
+1. Scraper bauen: `scraper/scrapers/<name>/run.py` — nutzt `DataKit` + `RequestKit`
 2. Scraper ausführen: `python -m scraper.scrapers.<name>.run` → schreibt `data/unchecked/<name>.json`
 3. Manuelle Prüfung der Einträge in der unchecked-Datei
 4. `python -m scraper.tools.clean` → validiert, dedupliziert, schreibt `data/providers.json`

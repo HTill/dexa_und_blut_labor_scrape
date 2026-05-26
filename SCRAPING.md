@@ -20,13 +20,14 @@ scraper/
 │   └── clean.py              # unchecked/*.json → providers.json (dedup)
 │
 ├── scrapers/                 # Jeder Scraper in eigenem Ordner
-│   └── overpass/
-│       └── scraper.py
+│   └── manual/
+│       └── run.py            # Interaktiver CLI-Scraper
 │
 ├── tests/
 │   ├── test_models.py
 │   ├── test_services.py
-│   ├── test_kit.py
+│   ├── test_data_kit.py
+│   ├── test_request_kit.py
 │   ├── test_validate.py
 │   └── test_clean.py
 │
@@ -36,7 +37,6 @@ data/
 ├── schema.json               # JSON Schema (wird getracked)
 ├── providers.json            # clean.py Output — lädt die Karte
 └── unchecked/                # Scraper-Outputs (ignored von Git)
-    ├── overpass_dach.json
     └── ...
 ```
 
@@ -88,25 +88,9 @@ resp = rk.get("https://api.example.com/data", params={"key": "value"})
 data = resp.json()
 ```
 
-**nginx-Proxy einrichten (auf eigenem Server):**
-```nginx
-# /etc/nginx/sites-available/scraper-proxy
-server {
-    listen 8080;
-    location / {
-        resolver 8.8.8.8;
-        proxy_pass $scheme://$host$request_uri;
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-For $remote_addr;
-    }
-}
-```
-
-Mehrere Proxies auf verschiedenen Servern = rotierende IPs = kein Block.
-
 ### Service Enum
 
-Type-safe Strings für Leistungen. In `scraper/tools/services.py` definiert, über `kit.svc` nutzbar:
+Type-safe Strings für Leistungen. In `scraper/tools/services.py` definiert, über `dk.svc` nutzbar:
 
 | Enum-Wert | String |
 |---|---|
@@ -118,11 +102,20 @@ Neue Services einfach im Enum ergänzen — Schema muss nicht angepasst werden.
 
 ### Workflow
 
-1. Scraper bauen: `scraper/scrapers/<name>/run.py` — nutzt `DataKit` + `RequestKit`
+1. Scraper bauen: `scraper/scrapers/<name>/run.py` — nutzt `DataKit` (+`RequestKit` für API-Scraper)
 2. Scraper ausführen: `python -m scraper.scrapers.<name>.run` → schreibt `data/unchecked/<name>.json`
 3. Manuelle Prüfung der Einträge in der unchecked-Datei
 4. `python -m scraper.tools.clean` → validiert, dedupliziert, schreibt `data/providers.json`
 5. Web-Karte (`web/`) lädt `providers.json`
+
+### Manueller CLI-Scraper
+
+```
+python -m scraper.scrapers.manual.run
+```
+
+Interaktive Eingabe aller Felder: Name, Kategorie (DEXA/Blutlabor/Beides), Services, Adresse,
+Koordinaten, Kontakt, Selbstzahler, Preise. Einträge werden mit `verified: true` gespeichert.
 
 ---
 
@@ -130,58 +123,7 @@ Neue Services einfach im Enum ergänzen — Schema muss nicht angepasst werden.
 
 | # | Datum | Quelle | Ansatz | Roh-Ergebnisse | Verifizierte Einträge | Status |
 |---|-------|--------|--------|---------------|----------------------|--------|
-| 0 | 2026-05-26 | Overpass API | `amenity=doctors` + `healthcare:speciality=radiology` in DE | ~700 Nodes | 0 | **Prototyp – nur Discovery** |
-
----
-
-## Session 0 — Overpass API: Radiologie-Praxen in DE
-
-**Ziel:** Breitflächige Discovery von Radiologie-Praxen in Deutschland als Kandidaten für manuelle Nachprüfung (Body Comp vs. Knochendichte).
-
-**Quelle:** OpenStreetMap Overpass API (`https://overpass-api.de/api/interpreter`)
-
-**Query:**
-```
-[out:json];
-area["ISO3166-1"="DE"];
-node["amenity"="doctors"]["healthcare:speciality"~"radiology"](area);
-out center;
-```
-
-**Ergebnis:** ~700 Nodes mit lat/lng und Tags, aber ...
-
-**Probleme:**
-- Overpass unterscheidet **nicht** zwischen Body Composition und reiner Knochendichtemessung
-- Keine Aussage zu Selbstzahler-Möglichkeit
-- Keine Blutlabor-Daten enthalten
-- Viele Einträge sind Klinik-Radiologien ohne Body-Comp-Angebot
-- Keine Website/Telefon-Nummer in den meisten Tags
-
-**Fazit:** Overpass eignet sich nur als **erster Discovery-Schritt**. Jeder Kandidat muss einzeln per Website geprüft werden.
-
-**Gefundene verifizierte Einträge:** 0 (nicht als verifizierbare Einträge geeignet)
-
----
-
-## Session 1 — [Nächste Suche hier dokumentieren]
-
-**Ziel:** _..._
-
-**Quelle:** _z.B. Google Maps Places API, Web-Suche, manuelle Recherche_
-
-**Suchbegriff / Query:** _..._
-
-**Roh-Ergebnisse:** _Anzahl, Qualität_
-
-**Herausforderungen / Erkenntnisse:** _..._
-
-**Gefundene JSON-Einträge:**
-
-```json
-[
-  // ...
-]
-```
+| 0 | 2026-05-26 | Overpass API | `amenity=doctors` + radiology in DE | ~700 Nodes | 0 | **Verworfen — API down, keine Body-Comp-Erkennung** |
 
 ---
 
@@ -220,15 +162,12 @@ out center;
       "country": "DE | AT | CH"
     },
     "coordinates": { "lat": 0.0, "lng": 0.0 },
-    "contact": {
-      "phone": "...",
-      "website": "..."
-    },
+    "contact": { "phone": "...", "website": "..." },
     "self_payer": true | false,
     "prices": {},
     "verified": false,
     "notes": "...",
-    "source": "..."
+    "source": ["..."]
   }
 ]
 \`\`\`
@@ -236,23 +175,24 @@ out center;
 
 ---
 
-## Mögliche nächste Quellen (Ideen)
+## Mögliche nächste Quellen
 
 | Quelle | Vorteil | Nachteil |
 |--------|---------|----------|
-| **Google Maps Places API** | Strukturierte Daten, Bewertungen, Website-Link | API-Kosten, Rate Limits, nicht alle Praxen gelistet |
-| **Google Custom Search / Web-Suche** | Gezielte Suche nach "DEXA Body Composition Selbstzahler [Stadt]" | Viel manuelle Nacharbeit, unstrukturiert |
-| **Gelbe Seiten / Jameda / Doctolib** | Arztverzeichnisse mit Filter | Anti-Scraping-Maßnahmen, Terms of Service |
-| **Manuelle Recherche** | Höchste Datenqualität | Zeitaufwändig, skaliert nicht |
-| **Overpass (verfeinert)** | Kostenlos, keine Rate Limits | Keine Unterscheidung Body Comp vs. Knochendichte, keine Kontaktdaten |
+| **Google Maps Places API** | Strukturierte Daten, Bewertungen, Website-Link | API-Kosten, Rate Limits |
+| **Google Custom Search / Web-Suche** | Gezielte Suche nach "DEXA Body Composition [Stadt]" | Viel manuelle Nacharbeit |
+| **Gelbe Seiten / Jameda / Doctolib** | Arztverzeichnisse mit Filter | Anti-Scraping-Maßnahmen |
+| **Manuelle Recherche** | Höchste Datenqualität | Zeitaufwändig |
+| **Firecrawl / Apify** | Website-Extraction, fertige Actors | Kostenpflichtig ab ~$29/Monat |
 | **Nominatim / OSM** | Geocoding von Adressen → Koordinaten | Nur Geocoding, keine Discovery |
 
 ---
 
-## Datenquellen-Bewertung (was hat funktioniert, was nicht)
+## Datenquellen-Bewertung
 
 > Diese Tabelle wird nach jeder Session aktualisiert.
 
 | Quelle | Geeignet für | Tauglichkeit | Begründung |
 |--------|-------------|-------------|------------|
-| Overpass API | Discovery | ⚠️ Eingeschränkt | Nur Kategorie-Recognition, keine Detaildaten, keine Body-Comp-Unterscheidung |
+| Overpass API | Discovery | ❌ Unbrauchbar | API down, keine Body-Comp-Unterscheidung |
+| Manuelle CLI | Verifizierte Einträge | ✅ Produktiv | Direkt schema-konform, `verified: true` |

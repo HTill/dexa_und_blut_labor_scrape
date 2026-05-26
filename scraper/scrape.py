@@ -14,23 +14,6 @@ import requests
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 OUTPUT_FILE = DATA_DIR / "providers.json"
 
-# Overpass API — DEXA/Body Composition in DACH
-OVERPASS_QUERY_DEXA = """
-[out:json];
-area["ISO3166-1"="DE"]->.de;
-area["ISO3166-1"="AT"]->.at;
-area["ISO3166-1"="CH"]->.ch;
-(
-  node["amenity"="clinic"]["description"~"dex
-body composition", i](area.de);
-  node["amenity"="clinic"]["description"~"dex
-body composition", i](area.at);
-  node["amenity"="clinic"]["description"~"dex
-body composition", i](area.ch);
-);
-out center;
-"""
-
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
 
 
@@ -42,14 +25,13 @@ def search_overpass(query: str) -> list[dict]:
     return data.get("elements", [])
 
 
-# TODO: Erste Recherche — über Overpass findet man primär Krankenhäuser/Radiologien.
-# Besser: Gezielte Google-Suche nach "DEXA Body Composition Selbstzahler [Stadt]"
-# + manuelle Verifikation.
-
-
 if __name__ == "__main__":
-    print("Starte Overpass-Recherche für DEXA-Anbieter ...")
-    results = search_overpass(OVERPASS_QUERY_DEXA.strip())
-    print(f"Gefunden: {len(results)} Einträge (roh, ungefiltert)")
-    print("Hinweis: Overpass liefert keine Unterscheidung Body Composition/Knochendichte.")
-    print("Manuelle Nachprüfung nötig.")
+    query = """
+    [out:json];
+    area["ISO3166-1"="DE"];
+    node["amenity"="doctors"]["healthcare:speciality"~"radiology"](area);
+    out center;
+    """
+    results = search_overpass(query.strip())
+    print(f"Overpass Rohdaten: {len(results)} Einträge")
+    print("Manuelle Nachprüfung nötig — Overpass unterscheidet nicht Body Composition vs. Knochendichte.")

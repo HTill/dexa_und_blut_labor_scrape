@@ -1,30 +1,17 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "LabProvider",
-  "description": "Ein Anbieter für DEXA-Scans oder Blutuntersuchungen",
   "type": "object",
   "properties": {
-    "id": {
-      "type": "string",
-      "description": "Eindeutige ID (z.B. Slug aus Name+Ort)"
-    },
-    "name": {
-      "type": "string",
-      "description": "Name der Praxis / des Labors"
-    },
+    "id": { "type": "string" },
+    "name": { "type": "string" },
     "category": {
       "type": "string",
-      "enum": ["dexa", "blutlabor", "beide"],
-      "description": "Kategorie des Anbieters"
+      "enum": ["dexa", "blutlabor", "beide"]
     },
     "services": {
       "type": "array",
-      "items": { "type": "string" },
-      "description": "Angebotene Leistungen",
-      "examples": [
-        ["DEXA Body Composition", "Knochendichte"],
-        ["Bluttest Selbstzahler", "Vitamin D", "Schilddrüse"]
-      ]
+      "items": { "type": "string" }
     },
     "address": {
       "type": "object",
@@ -52,27 +39,16 @@
         "email": { "type": "string", "format": "email" }
       }
     },
-    "self_payer": {
-      "type": "boolean",
-      "description": "Selbstzahler möglich?"
-    },
+    "self_payer": { "type": "boolean" },
     "prices": {
       "type": "object",
-      "description": "Preise falls öffentlich verfügbar",
       "additionalProperties": { "type": "string" }
     },
-    "verified": {
-      "type": "boolean",
-      "description": "Wurde der Eintrag manuell verifiziert?"
-    },
-    "notes": {
-      "type": "string",
-      "description": "Wichtige Hinweise (z.B. nur mit Termin, Wartezeit)"
-    },
+    "verified": { "type": "boolean" },
+    "notes": { "type": "string" },
     "source": {
       "type": "array",
-      "items": { "type": "string" },
-      "description": "Quellen des Eintrags (z.B. [\"overpass_de\", \"manual\"])"
+      "items": { "type": "string" }
     }
   },
   "required": ["id", "name", "category", "address", "coordinates"]

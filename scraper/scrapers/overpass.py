@@ -73,7 +73,7 @@ def _build_provider(node: dict) -> Provider | None:
             country=country,
         ),
         coordinates=Coordinates(lat=float(lat), lng=float(lng)),
-        services=["Knochendichte oder Body Composition (manuell prüfen!)"],
+        services=[],  # unbekannt ob Body Comp oder Knochendichte
         contact=None,
         self_payer=None,
         prices={},

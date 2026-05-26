@@ -3,6 +3,8 @@ Dataclasses für DEXA & Blutlabor Provider-Einträge.
 
 Jeder Scraper sollte diese Klassen nutzen, um valide Einträge zu erzeugen.
 Die to_dict()-Methode liefert ein JSON-serialisierbares dict, das zum Schema passt.
+
+Für konsistente Service-Strings: from scraper.tools.services import Service
 """
 
 from dataclasses import asdict, dataclass, field
@@ -50,7 +52,7 @@ class Provider:
     category: str  # "dexa", "blutlabor", "beide"
     address: Address
     coordinates: Coordinates
-    services: list[str] = field(default_factory=list)
+    services: list[str] = field(default_factory=list)  # Service-Enum-Werte verwenden
     contact: Contact | None = None
     self_payer: bool | None = None
     prices: dict[str, str] = field(default_factory=dict)

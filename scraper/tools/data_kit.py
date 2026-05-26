@@ -19,7 +19,7 @@ class DataKit:
     Daten-Werkzeugkasten für Provider.
 
     Usage:
-        dk = DataKit("overpass_de")
+        dk = DataKit("manual")
         p = dk.provider(
             id="praxis-hannover",
             name="Praxis Hannover",
@@ -34,7 +34,7 @@ class DataKit:
     def __init__(self, name: str):
         """
         Args:
-            name: Name des Scrapers (z.B. "overpass_de", "google_hannover").
+            name: Name des Scrapers (z.B. "manual", "google_hannover").
                   Wird als Dateiname in data/unchecked/ verwendet.
         """
         self.name = name

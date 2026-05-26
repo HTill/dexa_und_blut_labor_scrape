@@ -123,7 +123,7 @@ Koordinaten, Kontakt, Selbstzahler, Preise. Einträge werden mit `verified: true
 
 | # | Datum | Quelle | Ansatz | Roh-Ergebnisse | Verifizierte Einträge | Status |
 |---|-------|--------|--------|---------------|----------------------|--------|
-| 0 | 2026-05-26 | Overpass API | `amenity=doctors` + radiology in DE | ~700 Nodes | 0 | **Verworfen — API down, keine Body-Comp-Erkennung** |
+| 1 | _heute_ | Manuelle CLI | Interaktive Eingabe | — | — | **Aktiv** |
 
 ---
 
@@ -194,5 +194,4 @@ Koordinaten, Kontakt, Selbstzahler, Preise. Einträge werden mit `verified: true
 
 | Quelle | Geeignet für | Tauglichkeit | Begründung |
 |--------|-------------|-------------|------------|
-| Overpass API | Discovery | ❌ Unbrauchbar | API down, keine Body-Comp-Unterscheidung |
 | Manuelle CLI | Verifizierte Einträge | ✅ Produktiv | Direkt schema-konform, `verified: true` |

@@ -57,7 +57,7 @@ def parse_address(html: str) -> tuple[str, str, str]:
     lines = [l.strip() for l in text.split("\n") if l.strip()]
 
     if len(lines) >= 2:
-        street = lines[0]
+        street = re.sub(r"\s*\(.*?\)", "", lines[0]).strip()
         match = re.match(r"^(\d{5})\s+(.+)$", lines[1])
         if match:
             return street, match.group(1), match.group(2)

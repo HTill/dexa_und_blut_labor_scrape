@@ -22,15 +22,17 @@ from scraper.tools.request_kit import RequestKit
 BASE_URL = "https://www.meindirektlabor.de"
 OVERVIEW_URL = f"{BASE_URL}/standorte/"
 
-rk = RequestKit(proxy=None, rate=1.0, retries=3)
-geo_rk = RequestKit(use_scrapingbee=True, rate=1.2, retries=3)
+rk = RequestKit(rate=1.0, retries=3)
+geo_rk = RequestKit(rate=1.2, retries=3)
 dk = DataKit("meindirektlabor")
+
+NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
 
 
 def geocode(address_str: str) -> tuple[float, float]:
     try:
         resp = geo_rk.get(
-            "https://nominatim.openstreetmap.org/search",
+            NOMINATIM_URL,
             params={"q": address_str, "format": "json", "limit": 1},
             headers={"User-Agent": "DeXaBlutLaborScraper/1.0"},
         )
@@ -40,6 +42,13 @@ def geocode(address_str: str) -> tuple[float, float]:
     except Exception:
         pass
     return 0.0, 0.0
+
+
+def extract_coords_from_maps_link(html: str) -> tuple[float, float] | None:
+    match = re.search(r'/@(-?\d+\.\d+),(-?\d+\.\d+),\d+z', html)
+    if match:
+        return float(match.group(1)), float(match.group(2))
+    return None
 
 
 def parse_address(html: str) -> tuple[str, str, str]:
@@ -100,7 +109,7 @@ def extract_overview() -> list[dict]:
 
 
 def scrape_detail(url: str) -> dict | None:
-    """Scraped eine Detailseite für Adresse und Telefon."""
+    """Scraped eine Detailseite für Adresse, Telefon und Koordinaten."""
     try:
         html = rk.get(url).text
     except Exception:
@@ -108,6 +117,7 @@ def scrape_detail(url: str) -> dict | None:
 
     street, postal_code, city = parse_address(html)
     phone = parse_phone(html)
+    coords = extract_coords_from_maps_link(html)
 
     if not street or not city:
         return None
@@ -117,6 +127,9 @@ def scrape_detail(url: str) -> dict | None:
         "postal_code": postal_code,
         "city": city,
         "phone": phone,
+        "lat": coords[0] if coords else None,
+        "lng": coords[1] if coords else None,
+        "had_coords": coords is not None,
     }
 
 
@@ -127,6 +140,7 @@ def main() -> None:
     print(f"Standorte gefunden: {len(locations)}")
 
     providers = []
+    geocoded_count = 0
     for i, loc in enumerate(locations):
         print(f"  [{i+1}/{len(locations)}] {loc['title']} ...", end=" ", flush=True)
         detail = scrape_detail(loc["url"])
@@ -135,9 +149,11 @@ def main() -> None:
             print("(keine Adressdaten)")
             continue
 
-        # Geocoding
-        address_str = f"{detail['street']}, {detail['postal_code']} {detail['city']}, Germany"
-        lat, lng = geocode(address_str)
+        lat, lng = detail.get("lat"), detail.get("lng")
+        if lat is None or lng is None:
+            address_str = f"{detail['street']}, {detail['postal_code']} {detail['city']}, Germany"
+            lat, lng = geocode(address_str)
+            geocoded_count += 1
 
         provider = dk.provider(
             id=f"mdl-{loc['name'].lower().replace(' ', '-')}",
@@ -163,9 +179,11 @@ def main() -> None:
             source=[loc["url"]],
         )
         providers.append(provider)
-        print(f"✓ {provider.address.city}")
+        coord_src = "maps" if detail.get("had_coords") else "nominatim"
+        print(f"✓ {provider.address.city} ({coord_src})")
 
-    print(f"\nExtrahiert: {len(providers)} Standorte")
+    print(f"\nExtrahiert: {len(providers)} Standorte ({geocoded_count} via Geocoding)")
+    print(f"Geo-Quelle: Google Maps Link > Nominatim")
 
     if providers:
         dk.save(providers)

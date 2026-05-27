@@ -31,7 +31,7 @@ COUNTRY_MAP = {
     "Schweiz": "CH",
 }
 
-rk = RequestKit(proxy=None, rate=0.5, retries=3)
+rk = RequestKit(rate=0.5, retries=3)
 dk = DataKit("limbach")
 
 

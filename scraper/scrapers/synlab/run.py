@@ -23,7 +23,7 @@ from scraper.tools.request_kit import RequestKit
 BASE_URL = "https://www.synlab.de"
 LABLOCATOR_URL = f"{BASE_URL}/lablocator"
 
-rk = RequestKit(proxy=None, rate=0.5, retries=3)
+rk = RequestKit(rate=0.5, retries=3)
 dk = DataKit("synlab")
 
 

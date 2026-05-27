@@ -30,8 +30,8 @@ STANDORT_URLS = [
     "/das-labor/standort-kempen-1",
 ]
 
-rk = RequestKit(proxy=None, rate=1.0, retries=3)
-geo_rk = RequestKit(use_scrapingbee=True, rate=1.2, retries=3)
+rk = RequestKit(rate=1.0, retries=3)
+geo_rk = RequestKit(rate=1.2, retries=3)
 dk = DataKit("wisplinghoff")
 
 

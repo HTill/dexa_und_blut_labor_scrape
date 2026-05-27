@@ -72,7 +72,7 @@ PARTNER_LABS = {
     }
 }
 
-rk = RequestKit(proxy=None, rate=0.5, retries=3)
+rk = RequestKit(rate=0.5, retries=3)
 dk = DataKit("imd")
 
 
@@ -359,9 +359,8 @@ def scrape_anfahrt() -> list:
                 coordinates=dk.coordinates(lat=lat, lng=lng),
                 contact=dk.contact(
                     phone=phone,
-                    fax=fax,
                     website=BASE_URL
-                ) if phone or fax else None,
+                ) if phone else None,
                 services=[dk.svc.BLOOD_SELF_PAYER.value],
                 self_payer=True,
                 verified=False,

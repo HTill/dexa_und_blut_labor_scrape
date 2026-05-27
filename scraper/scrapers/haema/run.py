@@ -29,8 +29,8 @@ from scraper.tools.request_kit import RequestKit
 BASE_URL = "https://www.haema.de"
 STANDORTE_URL = f"{BASE_URL}/standorte/"
 
-rk = RequestKit(proxy=None, rate=0.5, retries=3)
-geo_rk = RequestKit(use_scrapingbee=True, rate=1.2, retries=3)
+rk = RequestKit(rate=0.5, retries=3)
+geo_rk = RequestKit(rate=1.2, retries=3)
 dk = DataKit("haema")
 
 

@@ -23,8 +23,26 @@ from scraper.tools.request_kit import RequestKit
 BASE_URL = "https://www.amedes-group.com"
 STANDORTE_URL = f"{BASE_URL}/unternehmen/standorte.html"
 
-rk = RequestKit(proxy=None, rate=0.5, retries=3)
+rk = RequestKit(rate=0.5, retries=3)
+geo_rk = RequestKit(rate=1.2, retries=3)
 dk = DataKit("amedes")
+
+NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
+
+
+def geocode(address_str: str) -> tuple[float, float]:
+    try:
+        resp = geo_rk.get(
+            NOMINATIM_URL,
+            params={"q": address_str, "format": "json", "limit": 1},
+            headers={"User-Agent": "DeXaBlutLaborScraper/1.0"},
+        )
+        data = resp.json()
+        if data:
+            return float(data[0]["lat"]), float(data[0]["lon"])
+    except Exception:
+        pass
+    return 0.0, 0.0
 
 
 def parse_phone_text(text: str) -> str | None:
@@ -50,11 +68,9 @@ def parse_email_text(text: str) -> str | None:
     text = text.replace('\xa0', ' ')
     
     # Suche nach data-mailto-token Attribut
-    match = re.search(r'data-mailto-token="[^"]+"[^>]*data-mailto-vector="1">([^<]+)\(at\)', text)
+    match = re.search(r'data-mailto-token="[^"]+".*?>([^<]+)\(at\)([^<]+)', text)
     if match:
-        email_parts = match.group(1).split('(at)')
-        if len(email_parts) == 2:
-            return f"{email_parts[0]}@{email_parts[1]}"
+        return f"{match.group(1)}@{match.group(2)}"
     
     # Suche nach normaler E-Mail
     match = re.search(r'[\w\.\-]+@[\w\.\-]+\.[a-zA-Z]{2,}', text)
@@ -193,10 +209,9 @@ def scrape_standorte() -> list:
             # Falls kein contact Div, versuche aus address Div zu extrahieren
             phone, email, website = extract_contact_from_div(address_div)
         
-        # Extrahiere Koordinaten aus dem übergeordneten Marker (falls verfügbar)
-        # Da die Seite keine direkten Koordinaten hat, verwenden wir None
-        # Diese müssen später manuell oder per Geocoding ergänzt werden
-        lat, lng = None, None
+        
+        address_str = f"{street}, {postal_code} {city}, Germany"
+        lat, lng = geocode(address_str)
         
         # Erstelle Provider-Eintrag
         provider = dk.provider(
@@ -209,7 +224,7 @@ def scrape_standorte() -> list:
                 city=city,
                 country="DE"
             ),
-            coordinates=dk.coordinates(lat=lat if lat is not None else 0.0, lng=lng if lng is not None else 0.0),
+            coordinates=dk.coordinates(lat=lat, lng=lng),
             contact=dk.contact(phone=phone, website=website, email=email) if phone or website or email else None,
             services=[dk.svc.BLOOD_SELF_PAYER.value],
             self_payer=True,

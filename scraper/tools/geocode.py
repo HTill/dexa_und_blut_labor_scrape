@@ -8,7 +8,7 @@ Usage:
 
 Geht alle unchecked/*.json Dateien durch und geocodiert Einträge
 mit Koordinaten (0.0, 0.0) über die Nominatim API (OpenStreetMap).
-Nutzt RequestKit mit ScrapingBee für Proxy-Support.
+Nutzt RequestKit für direktes Nominatim-Geocoding.
 """
 
 import json
@@ -21,9 +21,9 @@ DATA_DIR = Path(__file__).resolve().parent.parent.parent / "data"
 UNCHECKED_DIR = DATA_DIR / "unchecked"
 
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
-RATE_LIMIT = 1.2  # ScrapingBee + Nominatim Rate-Limit
+RATE_LIMIT = 1.2  # Nominatim Rate-Limit
 
-rk = RequestKit(use_scrapingbee=True, rate=RATE_LIMIT, retries=3)
+rk = RequestKit(rate=RATE_LIMIT, retries=3)
 
 
 def geocode_address(street: str, postal_code: str, city: str, country: str = "DE") -> tuple[float, float]:
@@ -114,7 +114,7 @@ def main() -> None:
             if idx + 1 < len(sys.argv):
                 file_filter = sys.argv[idx + 1]
 
-    print("=== Geocode-Tool (via ScrapingBee) ===")
+    print("=== Geocode-Tool (Nominatim direkt) ===")
     if dry_run:
         print("Modus: DRY-RUN (keine Änderungen)")
     print()

@@ -48,9 +48,33 @@ LOCATIONS = [
     ("schuettorf", "Schüttorf"),
 ]
 
-rk = RequestKit(proxy=None, rate=0.5, retries=3)
-geo_rk = RequestKit(use_scrapingbee=True, rate=1.2, retries=3)
+rk = RequestKit(rate=0.5, retries=3)
+geo_rk = RequestKit(rate=1.2, retries=3)
 dk = DataKit("ladr")
+
+NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
+
+
+def geocode(address_str: str) -> tuple[float, float]:
+    try:
+        resp = geo_rk.get(
+            NOMINATIM_URL,
+            params={"q": address_str, "format": "json", "limit": 1},
+            headers={"User-Agent": "DeXaBlutLaborScraper/1.0"},
+        )
+        data = resp.json()
+        if data:
+            return float(data[0]["lat"]), float(data[0]["lon"])
+    except Exception:
+        pass
+    return 0.0, 0.0
+
+
+def extract_coords_from_maps_link(html: str) -> tuple[float, float] | None:
+    match = re.search(r'/@(-?\d+\.\d+),(-?\d+\.\d+),\d+z', html)
+    if match:
+        return float(match.group(1)), float(match.group(2))
+    return None
 
 
 def decode_typo3_email(token: str, vector: int) -> str:
@@ -92,7 +116,7 @@ def parse_address(text: str) -> tuple[str, str, str]:
 
 
 def parse_page(html: str, url: str) -> dict | None:
-    """Extrahiert Name, Adresse, Telefon, Email aus einer LADR-Detailseite."""
+    """Extrahiert Name, Adresse, Telefon, Email und Koordinaten aus einer LADR-Detailseite."""
     soup = BeautifulSoup(html, "lxml")
 
     card_body = soup.select_one(".toideate-m-cardteaser-content-body")
@@ -125,6 +149,15 @@ def parse_page(html: str, url: str) -> dict | None:
         except Exception:
             pass
 
+    # Koordinaten aus Google Maps Link extrahieren
+    maps_link = card_body.select_one(".toideate-m-cardteaser-content-green--map")
+    lat, lng = None, None
+    if maps_link:
+        href = maps_link.get("href", "")
+        coords = extract_coords_from_maps_link(href)
+        if coords:
+            lat, lng = coords
+
     return {
         "name": name,
         "street": street,
@@ -133,22 +166,10 @@ def parse_page(html: str, url: str) -> dict | None:
         "phone": phone,
         "email": email,
         "url": url,
+        "lat": lat,
+        "lng": lng,
+        "had_coords": lat is not None,
     }
-
-
-def geocode(address_str: str) -> tuple[float, float]:
-    try:
-        resp = geo_rk.get(
-            "https://nominatim.openstreetmap.org/search",
-            params={"q": address_str, "format": "json", "limit": 1},
-            headers={"User-Agent": "DeXaBlutLaborScraper/1.0"},
-        )
-        data = resp.json()
-        if data:
-            return float(data[0]["lat"]), float(data[0]["lon"])
-    except Exception:
-        pass
-    return 0.0, 0.0
 
 
 def main() -> None:
@@ -156,6 +177,8 @@ def main() -> None:
     print(f"Standorte: {len(LOCATIONS)}")
 
     providers = []
+    map_count = 0
+    geo_count = 0
     for i, (slug, label) in enumerate(LOCATIONS):
         url = f"{BASE_URL}{LABS_PATH}/{slug}"
         print(f"  [{i+1}/{len(LOCATIONS)}] {label} ...", end=" ", flush=True)
@@ -171,8 +194,13 @@ def main() -> None:
             print("(keine Adressdaten)")
             continue
 
-        address_str = f"{detail['street']}, {detail['postal_code']} {detail['city']}, Germany"
-        lat, lng = geocode(address_str)
+        lat, lng = detail.get("lat"), detail.get("lng")
+        if lat is None or lng is None:
+            address_str = f"{detail['street']}, {detail['postal_code']} {detail['city']}, Germany"
+            lat, lng = geocode(address_str)
+            geo_count += 1
+        else:
+            map_count += 1
 
         provider = dk.provider(
             id=f"ladr-{slug.replace('/', '-')}",
@@ -206,6 +234,7 @@ def main() -> None:
         print(f"\u2713 {provider.address.city}")
 
     print(f"\nExtrahiert: {len(providers)} Standorte")
+    print(f"Geo-Quelle: {map_count} via Google Maps, {geo_count} via Nominatim")
 
     if providers:
         dk.save(providers)

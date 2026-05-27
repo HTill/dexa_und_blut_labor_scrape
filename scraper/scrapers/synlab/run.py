@@ -98,8 +98,9 @@ def scrape_lablocator() -> list:
     soup = BeautifulSoup(html, "lxml")
     
     providers = []
-    # Filter nur echte div Elemente mit data-uid Attribut
-    items = soup.select("div.locations-list-item[data-uid]")
+    seen_uids = set()
+    # Filter alle Humanmedizin-Labore (beide Varianten: mit und ohne Komma)
+    items = soup.select("div.locations-list-item[data-uid][data-categories*='Humanmedizin']")
     
     for item in items:
         uid = item.get("data-uid")
@@ -108,6 +109,11 @@ def scrape_lablocator() -> list:
         
         if not uid or not lat_str or not lng_str:
             continue
+        
+        # Deduplizierung: Jeder Standort kommt mehrmals im HTML vor
+        if uid in seen_uids:
+            continue
+        seen_uids.add(uid)
         
         try:
             lat = float(lat_str)

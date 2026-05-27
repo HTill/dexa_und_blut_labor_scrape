@@ -2,3 +2,5 @@ requests
 beautifulsoup4
 lxml
 jsonschema
+python-dotenv
+scrapingbee

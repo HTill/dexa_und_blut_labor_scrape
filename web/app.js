@@ -36,9 +36,10 @@ function renderMarkers() {
   markers.forEach(m => map.removeLayer(m));
   markers = [];
 
-  const filtered = activeFilter === 'alle'
-    ? providers
-    : providers.filter(p => p.category === activeFilter || p.category === 'beide');
+  const filtered = (activeFilter === 'alle'
+      ? providers
+      : providers.filter(p => p.category === activeFilter || p.category === 'beide'))
+    .filter(p => p.coordinates.lat !== 0 || p.coordinates.lng !== 0);
 
   filtered.forEach(p => {
     const icon = createIcon(COLORS[p.category] || '#999');

@@ -18,6 +18,11 @@ from scraper.tools.clean import clean  # noqa: E402
 
 os.chdir(HERE / "web")
 
+# Symlink data/ für den Webserver
+data_link = HERE / "web" / "data"
+if not data_link.exists():
+    data_link.symlink_to(HERE / "data", target_is_directory=True)
+
 
 def main() -> None:
     print("=== Clean & Validate ===")

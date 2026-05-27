@@ -95,7 +95,7 @@ document.querySelectorAll('.filter-btn').forEach(btn => {
 });
 
 // Daten laden
-fetch('../data/providers.json')
+fetch('data/providers.json')
   .then(res => res.json())
   .then(data => {
     providers = data;

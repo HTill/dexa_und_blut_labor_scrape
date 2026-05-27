@@ -60,6 +60,20 @@ def test_validate_entry_invalid_category():
     assert any("category" in e for e in errors)
 
 
+def test_validate_entry_valid_with_docs():
+    """Eintrag mit docs-Feld ist valide."""
+    entry = {
+        "id": "test",
+        "name": "Test",
+        "category": "dexa",
+        "address": {"street": "s", "postal_code": "p", "city": "c", "country": "DE"},
+        "coordinates": {"lat": 0, "lng": 0},
+        "docs": "Annahme: Alle Labore bieten Selbstzahler an, nicht verifiziert",
+    }
+    errors = validate_entry(entry)
+    assert errors == []
+
+
 def test_validate_entry_valid_with_source():
     """Eintrag mit source-Array ist valide."""
     entry = {

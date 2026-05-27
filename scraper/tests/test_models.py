@@ -27,6 +27,7 @@ def test_provider_to_dict_minimal():
     assert "prices" not in d
     assert "verified" not in d
     assert "notes" not in d
+    assert "docs" not in d
     assert "source" not in d
 
 
@@ -44,6 +45,7 @@ def test_provider_to_dict_with_optionals():
         prices={"DEXA": "80 €"},
         verified=True,
         notes="Nur mit Termin",
+        docs="Annahme basiert auf Website, nicht verifiziert",
         source=["manual", "google_maps"],
     )
     d = p.to_dict()
@@ -53,6 +55,7 @@ def test_provider_to_dict_with_optionals():
     assert d["prices"]["DEXA"] == "80 €"
     assert d["verified"] is True
     assert d["notes"] == "Nur mit Termin"
+    assert d["docs"] == "Annahme basiert auf Website, nicht verifiziert"
     assert d["source"] == ["manual", "google_maps"]
 
 

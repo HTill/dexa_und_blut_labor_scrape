@@ -147,9 +147,15 @@ def scrape_lablocator() -> list:
             coordinates=dk.coordinates(lat=lat, lng=lng),
             contact=dk.contact(phone=phone, website=website) if phone or website else None,
             services=[dk.svc.BLOOD_SELF_PAYER.value],
-            self_payer=None,
+            self_payer=True,
             verified=False,
             notes=f"Typ: {lab_type}" if lab_type else None,
+            docs=(
+                "Annahme: Aufgrund des Online-Auftritts von Synlab wird davon ausgegangen, "
+                "dass in allen Humanmedizin-Laboren einfache Blutuntersuchungen "
+                "auch für Selbstzahler angeboten werden. "
+                "Dies sollte noch telefonisch verifiziert werden."
+            ),
             source=[LABLOCATOR_URL],
         )
         providers.append(provider)

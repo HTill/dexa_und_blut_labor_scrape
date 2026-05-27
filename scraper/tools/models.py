@@ -58,6 +58,7 @@ class Provider:
     prices: dict[str, str] = field(default_factory=dict)
     verified: bool | None = None
     notes: str | None = None
+    docs: str | None = None
     source: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:

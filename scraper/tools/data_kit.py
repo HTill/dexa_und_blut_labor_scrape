@@ -54,6 +54,7 @@ class DataKit:
         prices: dict[str, str] | None = None,
         verified: bool | None = None,
         notes: str | None = None,
+        docs: str | None = None,
         source: list[str] | None = None,
     ) -> Provider:
         return Provider(
@@ -68,6 +69,7 @@ class DataKit:
             prices=prices or {},
             verified=verified,
             notes=notes,
+            docs=docs,
             source=source or [],
         )
 
@@ -130,6 +132,7 @@ class DataKit:
                 prices=e.get("prices", {}),
                 verified=e.get("verified"),
                 notes=e.get("notes"),
+                docs=e.get("docs"),
                 source=e.get("source", []),
             ))
         return providers

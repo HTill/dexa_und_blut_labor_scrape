@@ -46,6 +46,7 @@
     },
     "verified": { "type": "boolean" },
     "notes": { "type": "string" },
+    "docs": { "type": "string" },
     "source": {
       "type": "array",
       "items": { "type": "string" }

@@ -70,10 +70,23 @@ class Provider:
         - Booleans (auch False) werden behalten
         """
         d = _asdict_recursive(self)
+        return _strip_empty(d)
+
+
+def _strip_empty(obj: Any) -> Any:
+    """Entfernt None, [] und {} rekursiv aus dicts und lists."""
+    if isinstance(obj, dict):
         return {
-            k: v for k, v in d.items()
-            if not (v is None or v == [] or v == {})
+            k: stripped
+            for k, v in obj.items()
+            if (stripped := _strip_empty(v)) is not None
+            and stripped != []
+            and stripped != {}
         }
+    if isinstance(obj, list):
+        stripped = [_strip_empty(item) for item in obj]
+        return [item for item in stripped if not (item is None or item == [] or item == {})]
+    return obj
 
 
 def _asdict_recursive(obj: Any) -> dict[str, Any]:

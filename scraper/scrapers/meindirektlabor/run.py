@@ -24,25 +24,27 @@ BASE_URL = "https://www.meindirektlabor.de"
 OVERVIEW_URL = f"{BASE_URL}/standorte/"
 
 rk = RequestKit(proxy=None, rate=1.0, retries=3)
+geo_rk = RequestKit(proxy=None, rate=1.2, retries=3)
 dk = DataKit("meindirektlabor")
 
 
 def geocode(address_str: str) -> tuple[float, float]:
-    """Geocodiert eine Adresse via Nominatim."""
-    time.sleep(1.1)  # Nominatim Rate-Limit
-    try:
-        import requests as req
-        resp = req.get(
-            "https://nominatim.openstreetmap.org/search",
-            params={"q": address_str, "format": "json", "limit": 1},
-            headers={"User-Agent": "DeXaBlutLaborScraper/1.0"},
-            timeout=10,
-        )
-        data = resp.json()
-        if data:
-            return float(data[0]["lat"]), float(data[0]["lon"])
-    except Exception:
-        pass
+    """Geocodiert eine Adresse via Nominatim (über RequestKit für Proxysupport)."""
+    for attempt in range(3):
+        try:
+            resp = geo_rk.get(
+                "https://nominatim.openstreetmap.org/search",
+                params={"q": address_str, "format": "json", "limit": 1},
+                headers={"User-Agent": "DeXaBlutLaborScraper/1.0"},
+            )
+            data = resp.json()
+            if data:
+                return float(data[0]["lat"]), float(data[0]["lon"])
+            return 0.0, 0.0
+        except Exception:
+            if attempt < 2:
+                time.sleep(10)
+            continue
     return 0.0, 0.0
 
 

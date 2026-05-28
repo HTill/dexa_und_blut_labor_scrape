@@ -30,9 +30,14 @@ def _normalize_address(address_str: str) -> str:
     return address_str.replace("ß", "ss").replace("–", "-").replace("—", "-")
 
 
+def _normalize_city(city: str) -> str:
+    return city.replace("a. T.", "am Taunus").replace("a. d.", "an der").replace("i. OB", "im Oberbayern")
+
+
 def _city_fallback(postal_code: str, city: str, country: str = "DE") -> str:
     country_map = {"DE": "Deutschland", "AT": "Österreich", "CH": "Schweiz"}
     country_name = country_map.get(country, country)
+    city = _normalize_city(city)
     return f"{postal_code} {city}, {country_name}"
 
 

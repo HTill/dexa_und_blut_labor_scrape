@@ -21,9 +21,19 @@ DATA_DIR = Path(__file__).resolve().parent.parent.parent / "data"
 UNCHECKED_DIR = DATA_DIR / "unchecked"
 
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
-RATE_LIMIT = 1.2  # Nominatim Rate-Limit
+RATE_LIMIT = 1.5  # Nominatim Rate-Limit
 
 rk = RequestKit(rate=RATE_LIMIT, retries=3)
+
+
+def _normalize_address(address_str: str) -> str:
+    return address_str.replace("ß", "ss").replace("–", "-").replace("—", "-")
+
+
+def _city_fallback(postal_code: str, city: str, country: str = "DE") -> str:
+    country_map = {"DE": "Deutschland", "AT": "Österreich", "CH": "Schweiz"}
+    country_name = country_map.get(country, country)
+    return f"{postal_code} {city}, {country_name}"
 
 
 def geocode_address(street: str, postal_code: str, city: str, country: str = "DE") -> tuple[float, float]:
@@ -36,17 +46,18 @@ def geocode_address(street: str, postal_code: str, city: str, country: str = "DE
     country_name = country_map.get(country, country)
     address_str += f", {country_name}"
 
-    try:
-        resp = rk.get(
-            NOMINATIM_URL,
-            params={"q": address_str, "format": "json", "limit": 1, "countrycodes": country.lower()},
-            headers={"User-Agent": "DeXaBlutLaborScraper/1.0"},
-        )
-        data = resp.json()
-        if data:
-            return float(data[0]["lat"]), float(data[0]["lon"])
-    except Exception:
-        pass
+    for query in [_normalize_address(address_str), _city_fallback(postal_code, city, country)]:
+        try:
+            resp = rk.get(
+                NOMINATIM_URL,
+                params={"q": query, "format": "json", "limit": 1, "countrycodes": country.lower()},
+                headers={"User-Agent": "DeXaBlutLaborScraper/1.0"},
+            )
+            data = resp.json()
+            if data:
+                return float(data[0]["lat"]), float(data[0]["lon"])
+        except Exception:
+            pass
     return 0.0, 0.0
 
 

@@ -30,18 +30,30 @@ dk = DataKit("amedes")
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
 
 
-def geocode(address_str: str) -> tuple[float, float]:
+def geocode(address_str: str, country: str = "DE") -> tuple[float, float]:
+    country_map = {"DE": "de", "AT": "at", "CH": "ch"}
+    country_code = country_map.get(country, "de")
+
+    # Strip parenthetical annotations before geocoding — Nominatim
+    # does not understand "(Barkhof, Haus B, 6. Etage)"-style suffixes.
+    query_str = re.sub(r'\s*\([^)]*\)', '', address_str).strip()
+
     try:
         resp = geo_rk.get(
             NOMINATIM_URL,
-            params={"q": address_str, "format": "json", "limit": 1},
-            headers={"User-Agent": "DeXaBlutLaborScraper/1.0"},
+            params={
+                "q": query_str,
+                "format": "json",
+                "limit": 1,
+                "countrycodes": country_code,
+            },
+            headers={"User-Agent": "DeXaBlutLaborScraper/1.0 (amedes-scraper)"},
         )
         data = resp.json()
         if data:
             return float(data[0]["lat"]), float(data[0]["lon"])
-    except Exception:
-        pass
+    except Exception as exc:
+        print(f"      Geocode fehlgeschlagen für '{query_str}': {exc}")
     return 0.0, 0.0
 
 
@@ -96,49 +108,83 @@ def parse_website_text(text: str) -> str | None:
 def extract_address_from_div(div: BeautifulSoup) -> tuple[str, str, str]:
     """Extrahiert Adresse aus dem address Div."""
     address_text = div.get_text(' ', strip=True)
-    
-    # Behandle Zweigpraxis - nimm nur die erste Adresse
-    if 'Zweigpraxis' in address_text or 'Zweigstelle' in address_text:
-        # Extrahiere nur den Teil vor Zweigpraxis
-        match = re.search(r'^(.+?)(?:\s+Zweigpraxis|\s+Zweigstelle)', address_text, re.IGNORECASE)
+    address_text = address_text.replace('\xa0', ' ')
+
+    # Remove known non-address prefixes that leak into the street field.
+    # These prefixes (company names, facility labels, "Zweigpraxis") appear
+    # on the same <br>-separated line or as <p> wrappers before the actual
+    # street line on the Amedes standorte page.
+    for pattern in [
+        r'\bamedes\s+Chirurgie\s+Kompetenznetz\s+Nord\b',
+        r'\bamedes\s+Diabetologie\s+\w+\b',
+        r'\bZweigpraxis\s*(?::|des\s+MVZ\s+[\w\s]+?)\b',
+        r'\bZweigstelle\b',
+        r'\bPrivatpraxis\b',
+        r'\bim\s+[\w\s]*?Krankenhaus\b',
+        r'\bMedizinzentrum\s+\w+\b',
+        r'\bPoliklinik\s+am\s+[\w\s\-]+?\b(?=\s+\w+\d)',
+    ]:
+        match = re.search(pattern, address_text, re.IGNORECASE)
         if match:
-            address_text = match.group(1).strip()
-    
-    # Entferne alle Kontaktdaten (Telefon, Internet, E-Mail, etc.)
-    # Ersetze durch ein spezielles Trennzeichen
-    cleaned_text = re.sub(r'(?:Telefon|Tel\.?|Fax|Telefax|Internet|E-Mail|E-mail|www\.)[^\d]*', '|||', address_text, flags=re.IGNORECASE)
-    
-    # Suche nach PLZ (5 Ziffern) und Stadt vor dem Trennzeichen oder Ende
-    match = re.search(r'^(.+?)(\d{5})\s+([^\d\|]+)', cleaned_text)
+            # Remove the prefix — it may span multiple words up to the street
+            prefix_end = match.end()
+            address_text = address_text[prefix_end:].strip()
+
+    # Collapse contact info (phone, fax, email, URLs) into a pipe
+    # separator so it does not get parsed as part of the city or street.
+    address_text = re.sub(
+        r'(?:Telefon|Tel\.?|Fax|Telefax|Internet|E-Mail|E-mail|www\.|https?://)\S*',
+        '|||',
+        address_text,
+        flags=re.IGNORECASE,
+    )
+
+    # Remove known non-address trailing labels (only when after PLZ area).
+    address_text = re.sub(
+        r'\s*(?:Termin\s+vereinbaren|Ausgelagerte\s+Praxisräume).*$',
+        '',
+        address_text,
+        flags=re.IGNORECASE,
+    )
+
+    # Only keep the portion before any contact separator.
+    address_text = address_text.split('|||')[0].strip()
+
+    # German postal code is exactly 5 digits. Street comes before,
+    # city name after. City may contain hyphens and spaces.
+    match = re.search(
+        r'^(.+?)\s+(\d{5})\s+([A-Za-zÄÖÜäöüß][^\d]+?)\s*$',
+        address_text,
+    )
     if match:
         street = match.group(1).strip()
         postal_code = match.group(2)
         city = match.group(3).strip()
-        
-        # Bereinige Straße
+
         street = re.sub(r'\s+', ' ', street)
         street = re.sub(r'[,\.;:]$', '', street)
-        
+
+        # Parens like "(Belgien)" or "(Barkhof, Haus B)" belong to
+        # the street line in the original page; keep them there.
+        city = re.sub(r'\s*\([^)]*\)\s*$', '', city).strip()
         return street, postal_code, city
-    
-    # Alternative: Suche nach PLZ und Stadt am Ende (ohne Kontaktdaten)
-    match = re.search(r'(.+?)(\d{5})\s+([^\d]+)$', cleaned_text)
+
+    # Fallback: search for LAST 5-digit group in the remaining text.
+    match = re.search(r'(.+?)(\d{5})\s+([^\d]+)$', address_text)
     if match:
         street = match.group(1).strip()
         postal_code = match.group(2)
         city = match.group(3).strip()
-        
-        # Bereinige Straße
         street = re.sub(r'\s+', ' ', street)
         street = re.sub(r'[,\.;:]$', '', street)
-        
+        city = re.sub(r'\s*\([^)]*\)\s*$', '', city).strip()
         return street, postal_code, city
-    
-    # Alternative: PLZ am Anfang
-    match = re.match(r'^(\d{5})\s+(.+)$', cleaned_text)
+
+    # PLZ at the start (very unusual, kept as last resort).
+    match = re.match(r'^(\d{5})\s+(.+)$', address_text)
     if match:
         return "", match.group(1), match.group(2)
-    
+
     return address_text, "", ""
 
 
@@ -210,7 +256,7 @@ def scrape_standorte() -> list:
             phone, email, website = extract_contact_from_div(address_div)
         
         
-        address_str = f"{street}, {postal_code} {city}, Germany"
+        address_str = f"{street}, {postal_code}, {city}, Deutschland"
         lat, lng = geocode(address_str)
         
         # Erstelle Provider-Eintrag

@@ -34,11 +34,14 @@ rk = RequestKit(rate=1.0, retries=3)
 geo_rk = RequestKit(rate=1.5, retries=3)
 dk = DataKit("wisplinghoff")
 
+NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
+
 
 def geocode(address_str: str) -> tuple[float, float]:
+    address_str = address_str.replace("ß", "ss").replace("–", "-")
     try:
         resp = geo_rk.get(
-            "https://nominatim.openstreetmap.org/search",
+            NOMINATIM_URL,
             params={"q": address_str, "format": "json", "limit": 1},
             headers={"User-Agent": "DeXaBlutLaborScraper/1.0"},
         )

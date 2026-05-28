@@ -24,7 +24,7 @@ BASE_URL = "https://www.amedes-group.com"
 STANDORTE_URL = f"{BASE_URL}/unternehmen/standorte.html"
 
 rk = RequestKit(rate=0.5, retries=3)
-geo_rk = RequestKit(rate=1.2, retries=3)
+geo_rk = RequestKit(rate=1.5, retries=3)
 dk = DataKit("amedes")
 
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"

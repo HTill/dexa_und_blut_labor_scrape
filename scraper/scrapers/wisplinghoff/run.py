@@ -31,7 +31,7 @@ STANDORT_URLS = [
 ]
 
 rk = RequestKit(rate=1.0, retries=3)
-geo_rk = RequestKit(rate=1.2, retries=3)
+geo_rk = RequestKit(rate=1.5, retries=3)
 dk = DataKit("wisplinghoff")
 
 

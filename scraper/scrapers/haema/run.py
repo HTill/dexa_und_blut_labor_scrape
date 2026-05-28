@@ -30,7 +30,7 @@ BASE_URL = "https://www.haema.de"
 STANDORTE_URL = f"{BASE_URL}/standorte/"
 
 rk = RequestKit(rate=0.5, retries=3)
-geo_rk = RequestKit(rate=1.2, retries=3)
+geo_rk = RequestKit(rate=1.5, retries=3)
 dk = DataKit("haema")
 
 

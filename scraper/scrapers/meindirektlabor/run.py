@@ -23,7 +23,7 @@ BASE_URL = "https://www.meindirektlabor.de"
 OVERVIEW_URL = f"{BASE_URL}/standorte/"
 
 rk = RequestKit(rate=1.0, retries=3)
-geo_rk = RequestKit(rate=1.2, retries=3)
+geo_rk = RequestKit(rate=1.5, retries=3)
 dk = DataKit("meindirektlabor")
 
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"

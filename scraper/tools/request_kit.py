@@ -73,7 +73,8 @@ class RequestKit:
                 return resp
             except requests.HTTPError as e:
                 if e.response is not None and 400 <= e.response.status_code < 500:
-                    raise
+                    if e.response.status_code != 429:
+                        raise
                 if attempt == self.retries:
                     raise
                 time.sleep(2**attempt)

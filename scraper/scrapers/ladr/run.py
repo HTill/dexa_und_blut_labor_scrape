@@ -49,7 +49,7 @@ LOCATIONS = [
 ]
 
 rk = RequestKit(rate=0.5, retries=3)
-geo_rk = RequestKit(rate=1.2, retries=3)
+geo_rk = RequestKit(rate=1.5, retries=3)
 dk = DataKit("ladr")
 
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"

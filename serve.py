@@ -1,41 +1,29 @@
 #!/usr/bin/env python3
 """
-Ein-Klick-Start: validiert und merged alle unchecked-Daten,
-startet dann einen HTTP-Server für die Web-Karte.
+HTTP-Server fuer die Web-Karte.
+
+Nur Serving — kein Clean/Validate.
+clean.py separat ausfuehren vor dem Starten.
 """
 
 import http.server
 import os
 import socketserver
-import sys
 from pathlib import Path
 
 PORT = 8000
 HERE = Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE))
-
-from scraper.tools.clean import clean  # noqa: E402
 
 os.chdir(HERE / "web")
 
-# Symlink data/ für den Webserver
 data_link = HERE / "web" / "data"
 if not data_link.exists():
     data_link.symlink_to(HERE / "data", target_is_directory=True)
 
 
 def main() -> None:
-    print("=== Clean & Validate ===")
-    entries, errors = clean()
-
-    if errors:
-        print(f"⚠ {len(errors)} Validierungsfehler:", file=sys.stderr)
-        for e in errors:
-            print(f"  - {e}", file=sys.stderr)
-
-    print(f"✓ {len(entries)} verifizierte Einträge bereit")
-
-    print(f"\n=== Karte unter http://localhost:{PORT} ===\n")
+    print(f"=== Karte unter http://localhost:{PORT} ===\n")
+    print("Vor dem Start ausfuehren: python -m scraper.tools.clean\n")
 
     handler = http.server.SimpleHTTPRequestHandler
     with socketserver.TCPServer(("", PORT), handler) as httpd:

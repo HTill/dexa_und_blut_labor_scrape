@@ -85,6 +85,31 @@ class RequestKit:
 
         raise RuntimeError("unreachable")
 
+    def post(self, url: str, data: dict | None = None, **kwargs) -> requests.Response:
+        self._wait()
+        base_timeout = kwargs.pop("timeout", self.timeout)
+
+        for attempt in range(self.retries + 1):
+            try:
+                resp = self.session.post(
+                    url, data=data, timeout=base_timeout, **kwargs
+                )
+                resp.raise_for_status()
+                return resp
+            except requests.HTTPError as e:
+                if e.response is not None and 400 <= e.response.status_code < 500:
+                    if e.response.status_code != 429:
+                        raise
+                if attempt == self.retries:
+                    raise
+                time.sleep(2**attempt)
+            except requests.RequestException:
+                if attempt == self.retries:
+                    raise
+                time.sleep(2**attempt)
+
+        raise RuntimeError("unreachable")
+
     def _wait(self) -> None:
         now = time.monotonic()
         elapsed = now - self._last_request

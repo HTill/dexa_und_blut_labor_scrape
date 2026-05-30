@@ -74,16 +74,14 @@ def needs_geocoding(entry: dict) -> bool:
     return lat == 0.0 and lng == 0.0
 
 
-def geocode_file(filepath: Path, dry_run: bool = False) -> int:
-    """Geocodiert alle 0,0-Einträge in einer Datei. Gibt Anzahl geocodierter Einträge zurück."""
-    with open(filepath, encoding="utf-8") as f:
-        entries = json.load(f)
-
+def geocode_entries(entries: list[dict], label: str = "", dry_run: bool = False) -> int:
+    """Geocodiert alle 0,0-Einträge in-place. Gibt Anzahl geocodierter Einträge zurück."""
     to_geocode = [e for e in entries if needs_geocoding(e)]
     if not to_geocode:
         return 0
 
-    print(f"\n  {filepath.name}: {len(to_geocode)}/{len(entries)} Einträge mit 0,0-Koordinaten")
+    prefix = f"  {label}: " if label else ""
+    print(f"\n{prefix}{len(to_geocode)}/{len(entries)} Einträge mit 0,0-Koordinaten")
     geocoded_count = 0
 
     for i, entry in enumerate(to_geocode):
@@ -113,6 +111,19 @@ def geocode_file(filepath: Path, dry_run: bool = False) -> int:
             print(f"✓ ({lat:.4f}, {lng:.4f})")
         else:
             print("✗ keine Koordinaten gefunden")
+
+    return geocoded_count
+
+
+def geocode_file(filepath: Path, dry_run: bool = False) -> int:
+    """Geocodiert alle 0,0-Einträge in einer Datei. Gibt Anzahl geocodierter Einträge zurück."""
+    with open(filepath, encoding="utf-8") as f:
+        entries = json.load(f)
+
+    if not isinstance(entries, list):
+        return 0
+
+    geocoded_count = geocode_entries(entries, label=filepath.name, dry_run=dry_run)
 
     if not dry_run and geocoded_count > 0:
         with open(filepath, "w", encoding="utf-8") as f:

@@ -108,9 +108,9 @@ def test_clean_integration(tmp_path):
             },
             {
                 "id": "valid2",
-                "name": "Valid 2",
+                "name": "Zebra Clinic",
                 "category": "blutlabor",
-                "address": {"street": "s", "postal_code": "p", "city": "c", "country": "DE"},
+                "address": {"street": "t", "postal_code": "q", "city": "d", "country": "DE"},
                 "coordinates": {"lat": 0, "lng": 0},
                 "source": ["a"],
             },
@@ -119,7 +119,7 @@ def test_clean_integration(tmp_path):
     (unchecked_dir / "b.json").write_text(
         json.dumps([
             {
-                "id": "valid1",  # Duplikat
+                "id": "valid1",  # Duplikat (same id/address as a.json)
                 "name": "Valid 1 Dup",
                 "category": "dexa",
                 "address": {"street": "s", "postal_code": "p", "city": "c", "country": "DE"},
@@ -140,7 +140,7 @@ def test_clean_integration(tmp_path):
     clean_module.OUTPUT_FILE = data_dir / "providers.json"
 
     try:
-        merged, errors = clean_module.clean()
+        merged, errors = clean_module.clean(api_key="")
 
         # 1 gültiger Eintrag (valid2) + 1 deduplizierter (valid1)
         assert len(merged) == 2

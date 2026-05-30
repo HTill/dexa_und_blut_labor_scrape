@@ -35,14 +35,19 @@ Ausgabe: `data/providers.json`.
 
 ## Scraper
 
-Vier Scraper im Einsatz. Details zu jedem in [SCRAPING.md](SCRAPING.md).
+Neun Scraper im Einsatz. Details zu jedem in [SCRAPING.md](SCRAPING.md).
 
-| Scraper | Quelle | Typ | Ausgabe |
-|---------|--------|-----|---------|
-| `aeon` | aeon.life CMS (Nuxt/Storyblok) | Klassisches Scraping (BS4) | 8 DEXA-Standorte (DE) |
-| `blutlabor_opencode_search` | Brave Search + opencode Agent | KI-gestuetzte Suche | 260+ Blutlabore |
-| `dexa_opencode_search` | Brave Search + opencode Agent | KI-gestuetzte Suche | 10+ DEXA-Praxen |
-| `manual` | Manuelle CLI-Eingabe | Interaktiv | Verifizierte Einzeleintraege |
+| Scraper | Quelle | Typ | Kategorie |
+|---------|--------|-----|-----------|
+| `aeon` | aeon.life CMS (Nuxt/Storyblok) | HTML-Scraping | DEXA |
+| `blutlabor_opencode_search` | Brave Search + opencode Agent | KI-gestuetzte Suche | Blutlabor |
+| `dexa_opencode_search` | Brave Search + opencode Agent | KI-gestuetzte Suche | DEXA |
+| `imd` | imd-berlin.de, -potsdam.de, -greifswald.de, -oderland.de | HTML-Scraping | Blutlabor |
+| `ladr` | ladr.de Facharztlabor-Detailseiten | HTML-Scraping | Blutlabor |
+| `manual` | Konsolen-Eingabe | Interaktiv | Beide |
+| `meindirektlabor` | meindirektlabor.de Standortuebersicht | HTML-Scraping | Blutlabor |
+| `synlab` | synlab.de Lablocator | HTML-Scraping | Blutlabor |
+| `wisplinghoff` | wisplinghoff.de Standortseiten | HTML-Scraping | Blutlabor |
 
 ## Frontend
 
@@ -77,7 +82,12 @@ Vier Scraper im Einsatz. Details zu jedem in [SCRAPING.md](SCRAPING.md).
     │   ├── aeon/
     │   ├── blutlabor_opencode_search/
     │   ├── dexa_opencode_search/
-    │   └── manual/
+    │   ├── imd/
+    │   ├── ladr/
+    │   ├── manual/
+    │   ├── meindirektlabor/
+    │   ├── synlab/
+    │   └── wisplinghoff/
     └── tests/
 ```
 

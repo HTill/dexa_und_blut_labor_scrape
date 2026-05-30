@@ -35,7 +35,7 @@ Ausgabe: `data/providers.json`.
 
 ## Scraper
 
-Neun Scraper im Einsatz. Details zu jedem in [SCRAPING.md](SCRAPING.md).
+Acht Scraper im Einsatz. Details zu jedem in [SCRAPING.md](SCRAPING.md).
 
 | Scraper | Quelle | Typ | Kategorie |
 |---------|--------|-----|-----------|
@@ -44,7 +44,6 @@ Neun Scraper im Einsatz. Details zu jedem in [SCRAPING.md](SCRAPING.md).
 | `dexa_opencode_search` | Brave Search + opencode Agent | KI-gestuetzte Suche | DEXA |
 | `imd` | imd-berlin.de, -potsdam.de, -greifswald.de, -oderland.de | HTML-Scraping | Blutlabor |
 | `ladr` | ladr.de Facharztlabor-Detailseiten | HTML-Scraping | Blutlabor |
-| `manual` | Konsolen-Eingabe | Interaktiv | Beide |
 | `meindirektlabor` | meindirektlabor.de Standortuebersicht | HTML-Scraping | Blutlabor |
 | `synlab` | synlab.de Lablocator | HTML-Scraping | Blutlabor |
 | `wisplinghoff` | wisplinghoff.de Standortseiten | HTML-Scraping | Blutlabor |
@@ -84,7 +83,6 @@ Neun Scraper im Einsatz. Details zu jedem in [SCRAPING.md](SCRAPING.md).
     │   ├── dexa_opencode_search/
     │   ├── imd/
     │   ├── ladr/
-    │   ├── manual/
     │   ├── meindirektlabor/
     │   ├── synlab/
     │   └── wisplinghoff/

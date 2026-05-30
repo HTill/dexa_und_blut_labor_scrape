@@ -23,7 +23,7 @@ Scraper die direkt die Website eines bekannten Labor- oder Praxisnetzwerks parse
 | Locations | 15 (8 DE, 7 CH) |
 | Besonderheit | Keine klassische HTML-Scraping — JSON aus `window.__NUXT__` extrahiert |
 
-Aeon bietet MRI-Ganzkoerper-Checks in Deutschland und der Schweiz. Zusaetzlich zum MRI-Scan wird ein DEXA Body Composition Scan als optionale Leistung angeboten (~10 min). DEXA-Preise sind nicht oeffentlich auf der Seite, muessen angefragt werden.
+Aeon bietet MRI-Ganzkoerper-Checks in Deutschland und der Schweiz. Zusaetzlich zum MRI-Scan wird ein DEXA Body Composition Scan als optionale Leistung angeboten (~10 min). Preise sind auf aeon.life einsehbar — Extraktion daraus steht noch aus.
 
 ### imd
 
@@ -136,22 +136,26 @@ Kritische Unterscheidung: viele Praxen bieten DEXA fuer Osteoporose-Diagnostik a
 
 ---
 
-## Manueller Scraper
-
-| Feld | Wert |
-|------|------|
-| Typ | Interaktive CLI |
-| Kategorie | Beide |
-| Befehl | `python -m scraper.scrapers.manual.run` |
-| Besonderheit | `verified: true` — manuell gepruefte Eintraege |
-
-Fuer Einzeleintraege oder Nachpflege. Fragt alle Felder interaktiv ab und haengt sie an `data/unchecked/manual.json` an.
-
----
-
 ## Scraper-Architektur
 
-### DataKit — Provider-Erstellung und Datei-I/O
+### Tools-Übersicht
+
+Alle gemeinsam genutzten Module in `scraper/tools/`:
+
+| Tool | Zweck |
+|------|-------|
+| `data_kit.py` | Provider-Factories + Datei-I/O (JSON speichern/laden) |
+| `request_kit.py` | HTTP-Client mit Rate-Limiting und Retry |
+| `validate.py` | jsonschema-Validierung gegen `data/schema.json` |
+| `geocode.py` | Nominatim-Geocoding (Adresse → Koordinaten) |
+| `brave_kit.py` | Brave Search API-Client |
+| `mistral_kit.py` | Mistral-API-Client (QS + Snippet-Filter + Website-Check) |
+| `opencode_pipeline.py` | Such-Pipeline (Brave → Mistral → opencode Agenten → Geocoding) |
+| `clean.py` | 4-Phasen-Pipeline (Schema → Geocoding → Laenderfilter/QS → Smart-Dedup) |
+| `models.py` | Provider-Dataclass |
+| `services.py` | Service-Enum (type-safe Leistungs-Strings) |
+
+#### DataKit — Provider-Erstellung und Datei-I/O
 
 Jeder Scraper nutzt `DataKit`, um schema-konforme Provider-Eintraege zu bauen und automatisch nach `data/unchecked/<name>.json` zu schreiben.
 
@@ -174,15 +178,6 @@ p = dk.provider(
 )
 
 dk.save([p])
-```
-
-### RequestKit — HTTP mit Rate-Limiting und Retry
-
-```python
-from scraper.tools.request_kit import RequestKit
-
-rk = RequestKit(rate=0.5, retries=3)  # 0.5s zwischen Requests, 3 Retries
-resp = rk.get("https://example.com", params={"key": "value"})
 ```
 
 ---

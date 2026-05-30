@@ -76,7 +76,6 @@ function showDetail(p) {
     ${p.self_payer !== undefined ? `<div class="field"><strong>Selbstzahler:</strong> ${p.self_payer ? 'Ja' : 'Nein'}</div>` : ''}
     ${p.prices ? `<div class="field"><strong>Preise:</strong> ${Object.entries(p.prices).map(([k,v]) => `${k}: ${v}`).join('<br>')}</div>` : ''}
     ${p.notes ? `<div class="field" style="margin-top:6px;color:#666;font-style:italic">${p.notes}</div>` : ''}
-    ${!p.verified ? '<div class="field" style="margin-top:8px;color:#e65100;font-weight:600">⚠ Noch nicht verifiziert</div>' : ''}
   `;
 
   panel.classList.add('visible');

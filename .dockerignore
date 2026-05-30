@@ -11,3 +11,4 @@ scraper/
 node_modules/
 package.json
 package-lock.json
+web/data

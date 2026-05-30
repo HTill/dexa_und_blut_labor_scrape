@@ -10,7 +10,9 @@ node_modules/
 *.swp
 *.swo
 
-# Data: generated files ignored, only schema.json tracked
-data/
+# Data — only schema.json and providers.json tracked
+data/*
 !data/schema.json
+!data/providers.json
+data/unchecked/
 web/data

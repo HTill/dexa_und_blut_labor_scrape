@@ -1,0 +1,13 @@
+.venv
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.git
+.gitignore
+README.md
+BEWERBUNGSAUFGABE.md
+scraper/
+node_modules/
+package.json
+package-lock.json

@@ -1,87 +1,127 @@
-# DEXA & Blutlabor Scrape — Interaktive Karte DACH
+# DEXA & Blutlabor Karte — DACH
 
-Webanwendung zur Suche von DEXA Body Composition Scans und Blutlaboren (Selbstzahler) in Deutschland, Österreich und der Schweiz.
+Interaktive Web-Karte für Labore und Praxen im DACH-Raum, die **DEXA Body Composition Scans** oder **Blutuntersuchungen als Selbstzahler** anbieten.
 
-## Setup
+- **280 DE-Anbieter** (263 Blutlabore + 17 DEXA)
+- **Verifizierte Daten** mit Website-Checks und Mistral-Qualitaetspruefung
+- **Deduplizierung** per ID und aehnlicher Adressen/Namen
+- **Geocoding** aller Adressen via Nominatim
+
+## Quick Start (Docker)
 
 ```bash
-git clone git@github.com:HTill/dexa_und_blut_labor_scrape.git
-cd dexa_und_blut_labor_scrape
+docker build -t dexa-karte .
+docker run -p 8000:8000 dexa-karte
+# Karte unter http://localhost:8000
+```
 
-# Python-Venv aufsetzen
+## Lokale Entwicklung
+
+```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -r scraper/requirements.txt
 
-# Tests
-python -m pytest scraper/tests/
-
-# Daten erfassen (interaktiv)
-python -m scraper.scrapers.manual.run
-
-# Daten mergen + Web-Karte starten (Ein-Klick)
-python serve.py
-
-# Oder einzeln:
-# Daten mergen
+# Daten-Pipeline ausfuehren (unchecked/*.json → providers.json)
 python -m scraper.tools.clean
 
-# Web-Karte starten
-open web/index.html
-# oder:
-python -m http.server 8000 --directory web
+# Karte starten
+python serve.py
+# → http://localhost:8000
 ```
 
-## Struktur
+## Daten-Pipeline
 
 ```
-├── README.md
-├── SCRAPING.md                # Scraping-Dokumentation & Sessions
-├── BEWERBUNGSAUFGABE.md       # Original-Aufgabenstellung
+                    ┌──────────────┐
+                    │ Phase 1       │
+     unchecked/*    │ Schema-       │
+     ──────────►    │ Validierung   │
+                    └──────┬───────┘
+                           │ gültige Einträge
+                    ┌──────▼───────┐
+                    │ Phase 1b     │
+                    │ Geocoding    │  (0,0-Koordinaten via Nominatim)
+                    └──────┬───────┘
+                           │
+                    ┌──────▼───────┐
+                    │ Phase 1a     │
+                    │ Länderfilter │  (DE default, --country=DE,AT,CH)
+                    └──────┬───────┘
+                           │
+                    ┌──────▼───────┐
+                    │ Phase 2      │
+                    │ Website-     │  HTTP-Status + Mistral QS
+                    │ Check        │  (nur mit API-Key)
+                    └──────┬───────┘
+                           │
+                    ┌──────▼───────┐
+                    │ Phase 4      │
+                    │ Smart-Dedup  │  Gleiche Adresse/Website → Mergen
+                    └──────┬───────┘
+                           │
+                    ┌──────▼───────┐
+                    │ providers    │
+                    │ .json        │
+                    └──────────────┘
+```
+
+## Projektstruktur
+
+```
+.
+├── Dockerfile                   # Webserver im Container
+├── serve.py                     # Lokaler Dev-Server
+├── web/                         # Frontend (Leaflet.js + Vanilla JS)
+│   ├── index.html
+│   ├── app.js
+│   └── style.css
 ├── data/
-│   └── schema.json            # JSON Schema (versioniert)
-├── scraper/
-│   ├── tools/                 # Helfer
-│   │   ├── models.py          # Provider-Dataclass
-│   │   ├── services.py        # Service Enum
-│   │   ├── data_kit.py        # Provider-Factories + Datei-I/O
-│   │   ├── request_kit.py     # HTTP mit Proxy, Rate-Limit, Retry
-│   │   ├── validate.py        # jsonschema-Validierung
-│   │   └── clean.py           # unchecked → providers.json (dedup)
-│   ├── scrapers/              # Jeder Scraper in eigenem Ordner
-│   │   └── manual/run.py      # Interaktiver CLI-Scraper
-│   ├── tests/                 # 31 Tests (pytest)
-│   └── requirements.txt
-└── web/
-    ├── index.html             # Kartenansicht
-    ├── app.js                 # Leaflet-Logik
-    └── style.css
+│   ├── schema.json              # JSON-Schema (versioniert)
+│   ├── providers.json           # Finale bereinigte Daten (versioniert)
+│   └── unchecked/               # Rohdaten der Scraper (gitignored)
+└── scraper/
+    ├── requirements.txt
+    ├── tools/
+    │   ├── clean.py             # 4-Phasen-Pipeline
+    │   ├── geocode.py           # Nominatim-Geocoding
+    │   ├── validate.py          # jsonschema-Validierung
+    │   ├── mistral_kit.py       # Mistral-API-Client
+    │   ├── brave_kit.py         # Brave Search API-Client
+    │   ├── request_kit.py       # HTTP mit Rate-Limiting + Retry
+    │   ├── data_kit.py          # Provider-Factories + I/O
+    │   └── opencode_pipeline.py # Generische Suchpipeline
+    ├── scrapers/
+    │   ├── aeon/                # aeon.life DEXA-Standorte
+    │   ├── blutlabor_opencode_search/  # Blutlabor ermittelt via KI
+    │   └── dexa_opencode_search/       # DEXA-Anbieter via KI
+    └── tests/
 ```
 
-`data/unchecked/` und `data/providers.json` sind in `.gitignore` — nur `schema.json` ist versioniert.
+## Architektur-Entscheidungen
 
-## Workflow
+- **Leaflet.js + Vanilla JS**: Kein Build-Tool, keine Framework-Abhaengigkeit, OpenStreetMap kostenlos. Reicht fuer eine Karte mit 300 Markern vollkommen.
+- **JSON als Datenformat**: Maschinenlesbar, einfach erweiterbar, kein DB-Setup noetig. `schema.json` validiert alle Eintraege.
+- **Python-Scraper**: Requests + BeautifulSoup fuer klassisches Scraping, Mistral/Brave APIs fuer KI-gestuetzte Suche.
+- **4-Phasen-Clean-Pipeline**: Validierung → Geocoding → Laender-/Qualitaetsfilter → Deduplizierung. Jede Phase isoliert und testbar.
+- **Smart-Dedup**: Zuerst Adress-Hash und Website-Domain, dann aehnliche Namen (>75%). Mehrere Quellen werden gemerged, nicht geloescht.
+- **Kein DB-Overhead**: 300 Datensaetze brauchen keine Datenbank. JSON ist git-freundlich und deployt sich von selbst.
 
-1. **Daten erfassen:** `python -m scraper.scrapers.manual.run` → schreibt `data/unchecked/manual.json`
-2. **Daten mergen:** `python -m scraper.tools.clean` → validiert, dedupliziert, schreibt `data/providers.json`
-3. **Karte starten:** `open web/index.html` → lädt `data/providers.json`
+## Datenqualitaet
 
-## Entscheidungen
-
-- **Leaflet.js** für die Karte: leichtgewichtig, kein Build-Tool nötig, OpenStreetMap-Tiles kostenlos.
-- **JSON** als Datenformat: maschinenlesbar, einfach erweiterbar, ohne Datenbank-Setup.
-- **Python** für Scraping: Requests + BeautifulSoup, jsonschema-Validierung.
-- **DataKit/RequestKit** getrennt: Provider-Erstellung und HTTP-Requests sind unabhängige Concerns.
-- **unchecked-Verzeichnis:** Rohdaten werden von `clean.py` validiert und dedupliziert, bevor sie auf die Karte kommen.
-- **Service Enum:** Type-safe Leistungs-Strings, einfach erweiterbar.
-- **Kein Framework-Overhead**: Vanilla JS + Leaflet reicht für die Aufgabe.
+| Phase | Was | Ergebnis |
+|-------|-----|----------|
+| Schema | jsonschema-Validierung aller Felder | 428/428 bestanden |
+| Geocoding | (0,0)-Koordinaten via Nominatim nachschlagen | Alle Eintraege mit echten Koordinaten |
+| QS | Mistral Large prueft Datenqualitaet | 6 Eintraege entfernt (Scheineintraege) |
+| Dedup | Adress- und Namensaehnlichkeit erkennen | 132 Duplikate gemerged |
+| **Final** | | **280 gepruefte Eintraege** |
 
 ## Bei mehr Zeit
 
-- Google Maps Places API / Firecrawl / Apify als weitere Scraper
-- GeoJSON statt Flat-JSON für direkte Leaflet-Kompatibilität
-- Clustering bei vielen Markern (Leaflet.markercluster)
-- Backend mit FastAPI + SQLite für Filter/Suche
-- Docker-Compose für Ein-Klick-Start
-- Automatisiertes Geocoding per Nominatim-API
-- nginx-Proxy-Setup für IP-Rotation bei API-Scraping
+- Oesterreich und Schweiz dazu — aktuell nur DE im Fokus
+- Leaflet.markercluster fuer bessere Performance bei 300+ Markern
+- Automatisierte Preisextraktion aus Labor-Websites
+- FastAPI-Backend mit Such- und Filter-API
+- CI/CD-Pipeline (GitHub Actions) fuer automatische Scraper-Laeufe
+- Mehr Quellen: Google Maps API, Gelbe Seiten, Jameda-Scraping
